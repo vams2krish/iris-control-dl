@@ -16,6 +16,26 @@ Initial implementation: November 4, 2026.
 
 ## Not established by these checks
 
-No Android physical device was connected (`adb devices` returned an empty list). Camera gaze accuracy, calibrated physical taps, real keyboard typing, blink precision, thermal behavior and FPS targets are not verified. Browser camera access was not enabled against the user's real camera during UI checks. iOS code is an uncompiled starter on Windows.
+A Pixel 4a (5G), Android 14 / API 34, was connected for a subsequent device test. The following was observed:
+
+- APK installed successfully over ADB and the main activity launched without an AndroidRuntime crash in the inspected logs.
+- The user granted Camera and Notifications; the installed package reports both permissions granted.
+- Android reports `dev.iris.control/.accessibility.ControlService` enabled and bound.
+- The user confirmed face detection, completed calibration and a visible cursor. A saved calibration profile was present; its coefficients were not published.
+- After updating to Android 0.1.1, the user confirmed that gaze dwell entered a digit in the separate Calculator app. This is a user-observed cross-app smoke test, not a measured accuracy benchmark.
+- Inspection of the original merged APK found network permissions inherited from a dependency, despite their absence in the app's own manifest. Version 0.1.1 explicitly removes `INTERNET` and `ACCESS_NETWORK_STATE`; `aapt dump permissions` confirms they are absent. The update installed successfully and Camera/Notifications permissions remained granted.
+- `apksigner verify --verbose` confirms APK Signature Scheme v2 verification. The development APK is debug-signed.
+
+Real keyboard typing, blink precision, sustained tracking, thermal behavior and FPS targets are not benchmarked. iOS remains an uncompiled starter on Windows.
+
+## Windows desktop preview
+
+- Native C# helper compiled with the Windows .NET Framework compiler.
+- Desktop test suite: 12 passed, including input-gating dry-run integration, freshness/sequence checks, fixation rearming, startup delay, face loss, emergency pause, blink handling, right-click target selection, drag/drop and static-server Host/cache behavior.
+- The dry-run helper never invokes Windows mouse/keyboard injection; these tests verify the control path, not real desktop selection accuracy.
+- The portable Windows app packaged and launched, displaying the React UI and the desktop bridge controls while actions remained paused.
+- Web strict typecheck, 5 web unit tests and static build pass with desktop integration.
+- The web preview recovered from the stale-chunk/error page by serving the current build. The local static server now uses `Cache-Control: no-store`, and the UI provides explicit reload recovery for stale camera chunks.
+- Full webcam-driven Chrome/Firefox/desktop task accuracy remains to be evaluated. Primary-monitor input only; secure/elevated Windows surfaces are excluded.
 
 The host system drive was full at first build, causing Gradle cache writes and JVM/Node allocation failures. Project-local caches and temporary paths on the workspace drive, sequential builds, a one-worker Gradle configuration, Serial GC, and a 128 MiB test JVM allowed Android validation to finish. No unrelated user files were removed.

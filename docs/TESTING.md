@@ -40,6 +40,18 @@ Record device/OS version, front-camera resolution, mount distance, lighting, pro
 - [ ] Inspect network traffic: frames never leave the browser; run with network disconnected and local assets.
 - [ ] Check 390px mobile, 768px tablet and 1440px desktop, text scaling, reduced motion and keyboard focus.
 
+## Windows desktop
+
+- [ ] Verify primary-monitor calibration at 100%, 125%, 150% and 200% Windows display scaling.
+- [ ] Keep camera tracking and input active while Iris is unfocused/minimized and Chrome, Firefox, Edge, Calculator and File Explorer have focus.
+- [ ] Confirm no input until explicit enable and the three-second delay expire.
+- [ ] Check dwell rearming, double/right click, long press, drag/drop, wheel scroll and gaze toolbar consumption.
+- [ ] Open the On-Screen Keyboard and type harmless text in a focused editor.
+- [ ] Ctrl+Alt+F8 releases held input; gaze Resume cannot undo an emergency latch.
+- [ ] Face loss, camera track end, app close, suspend, lock, renderer stall and display changes release input.
+- [ ] Run without administrator privileges; higher-integrity and secure surfaces remain blocked.
+- [ ] Test unsigned portable extraction and same-origin asset loading with the network disconnected.
+
 ## Release gate
 
 - [ ] Collaborate with intended users and accessibility specialists; define accepted false-action and task-success thresholds.

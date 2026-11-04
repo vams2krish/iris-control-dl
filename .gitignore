@@ -21,3 +21,8 @@ android/app/src/main/assets/face_landmarker.task
 web/public/models/
 web/public/wasm/
 tools/cache/
+desktop/native/bin/
+desktop/web/
+desktop/release/
+desktop/.runtime/
+release-assets/

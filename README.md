@@ -2,11 +2,11 @@
 
 # Iris Control [DL]
 
-**Your eyes, in control.** An experimental, privacy-first eye and face interface for Android, with a local browser demo and an iOS exploration starter.
+**Your eyes, in control.** An experimental, privacy-first eye and face interface for Windows and Android, with a browser practice mode and an iOS exploration starter.
 
 ![Iris Control workspace — actual application screenshot](docs/images/workspace.png)
 
-Iris turns front-camera face and iris landmarks into a calibrated cursor, dwell selections, deliberate blink gestures, and Android accessibility actions. A minimal **Next.js / React / shadcn-style UI / Tailwind CSS** workspace helps users explore the interaction and set up the native controller. The palette uses indigo, lavender, slate, and white, with no green accents.
+Iris turns front-camera face and iris landmarks into a calibrated cursor, dwell selections, deliberate blink gestures, Windows mouse/keyboard input, and Android accessibility actions. A minimal **Next.js / React / shadcn-style UI / Tailwind CSS** workspace runs as a browser practice page and inside the Windows Electron controller. The native Windows bridge sends input across ordinary applications and browser pages on the primary monitor. The palette uses indigo, lavender, slate, and white, with no green accents.
 
 **Project type: Deep Learning (DL), within Machine Learning (ML).** MediaPipe's pretrained Face Landmarker performs neural-network inference. Gaze mapping uses classical ridge regression; smoothing and gesture recognition use deterministic algorithms. This is **not a generative AI project**, does not train a new foundation model, and needs no API key.
 
@@ -26,9 +26,17 @@ Iris turns front-camera face and iris landmarks into a calibrated cursor, dwell 
 | Phone-wide control | Android Accessibility Service | **No** — own page only | **No** — custom app cannot inject system taps |
 | Fully local inference | Yes; no INTERNET permission | Yes, assets served from same host | Yes |
 
-The browser demo does **not** connect to or remotely operate a phone. It is an independently calibrated sandbox and setup guide. There is no account, server database, analytics, image upload, or cloud inference service.
+**Downloads and setup:** [GitHub Releases](https://github.com/vams2krish/iris-control-dl/releases) · [Android / iPhone installation guide](docs/INSTALLATION.md) · [Windows setup and controls](desktop/README.md).
+
+The ordinary browser demo does **not** connect to or remotely operate a phone or Windows. The Windows desktop app is a separate native host for the same UI. There is no account, server database, analytics, image upload, or cloud inference service.
 
 ## Getting started
+
+### Windows desktop control across applications
+
+Download the Windows portable ZIP from [Releases](https://github.com/vams2krish/iris-control-dl/releases), extract the whole folder, and run `IrisControl.exe`. Start the camera, run **Calibrate full screen**, then explicitly **Enable desktop actions**. After the three-second delay, switch to Chrome, Firefox, Edge or another desktop app. Gaze moves the real mouse cursor; dwell selects the desktop surface. The top gaze toolbar handles pause/resume, scroll, right/double click, drag/drop, on-screen keyboard, Back, next tab and app switching. **Ctrl+Alt+F8** is the emergency stop.
+
+The desktop host keeps local inference running while another app has focus. It uses a sandboxed renderer, a narrow sender-checked IPC bridge, and a native helper with a stale-frame watchdog. It requires Windows 10/11 x64 and currently supports only the primary monitor. It cannot inject into UAC/lock screens or higher-integrity applications. [Full Windows installation, build and validation details](desktop/README.md).
 
 ### Web setup and demo
 
@@ -43,7 +51,7 @@ npm run dev
 
 Open `http://localhost:3000`. Click **Start session**, grant camera access, then **Calibrate**. Look steadily at each dot while samples accumulate. Select practice tiles by holding your gaze; look away to rearm the target. Switch to Typing or Scroll mode to try those practice areas. All practice controls also support mouse, touch, and keyboard activation.
 
-The camera stops when the tab is hidden, the session is stopped, the camera track ends, or the page unmounts. Calibration coefficients and dwell duration are stored in browser local storage; remove calibration in Gesture settings. Camera frames are never persisted. A browser visited over a non-localhost origin needs HTTPS for camera access.
+In an ordinary browser, the camera stops when the tab is hidden, the session is stopped, the camera track ends, or the page unmounts. The Windows desktop host keeps tracking while another application has focus and stops it through Stop session or app exit. Browser-demo calibration coefficients and dwell duration are stored in local storage; remove calibration in Gesture settings. Desktop calibration is session-only. Camera frames are never persisted. A browser visited over a non-localhost origin needs HTTPS for camera access.
 
 ```sh
 npm test
@@ -149,6 +157,7 @@ web/
   lib/               Gaze features, calibration, validation
   scripts/           Prepare local WASM and model assets
   tests/             Calibration and storage-validation tests
+desktop/             Electron host, native Windows input helper, portable packaging
 ios/                 ARKit app-local exploration starter
 tools/prepare.py     Verified Android model download
 docs/                Validation, test checklist, source references, images
@@ -161,7 +170,7 @@ Modules are organized as Kotlin packages within one Gradle app module so camera,
 
 This implementation is a starting point for iterative assistive-technology evaluation, not a finished replacement for tested platform accessibility features.
 
-- **Physical validation:** gaze accuracy, blink robustness, latency, 20–25 FPS, battery impact, glasses, diverse faces, camera contention, and OEM service behavior still need hardware testing. No Android device was attached during initial development.
+- **Physical validation:** gaze accuracy, blink robustness, latency, 20–25 FPS, battery impact, glasses, diverse faces, camera contention, and OEM service behavior still need broader hardware testing. A Pixel 4a (5G), Android 14, was subsequently used for install/startup checks, with user-confirmed face detection, calibration and cursor visibility. Task-accuracy evaluation remains outstanding.
 - **Full-phone limits:** Android protected screens, lock screen, secure flows, OEM restrictions, physical navigation changes, and some custom keyboards may reject or misinterpret injected gestures. No root bypass is attempted.
 - **Orientation:** portrait/stable placement only in this preview. Rotating, moving the phone, or changing posture requires pausing and recalibrating. Automatic rotation/profile handling is planned.
 - **Calibration:** ridge mapping can produce poor results when features scarcely vary. Add independent validation targets and residual/error scoring before production use. There is no online drift correction yet.
@@ -175,6 +184,8 @@ This implementation is a starting point for iterative assistive-technology evalu
 
 ## Testing and references
 
+- [Platform installation and run steps](docs/INSTALLATION.md)
+- [Windows desktop controller](desktop/README.md)
 - [Test checklist](docs/TESTING.md)
 - [Validation record](docs/VALIDATION.md)
 - [Official technical references](docs/REFERENCES.md)

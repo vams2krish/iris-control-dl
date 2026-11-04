@@ -35,7 +35,35 @@ jobs:
       - run: chmod +x android/gradlew
       - run: ./gradlew assembleDebug testDebugUnitTest --no-daemon
         working-directory: android
+      - run: python tools/verify_apk.py
       - uses: actions/upload-artifact@v4
         with:
           name: iris-control-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+        working-directory: web
+      - run: npm run prepare:vision
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+      - run: npm ci
+        working-directory: desktop
+      - run: npm run install:runtime
+        working-directory: desktop
+      - run: npm run build:native
+        working-directory: desktop
+      - run: npm test
+        working-directory: desktop
+      - run: npm run package
+        working-directory: desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iris-control-windows-portable
+          path: desktop/release/IrisControl-0.2.0-win32-x64/

@@ -5,13 +5,14 @@ import { readFace } from "@/lib/gaze";
 export type Face = NonNullable<ReturnType<typeof readFace>>;
 export function useVision(onFrame: (face: Face | null, now: number) => void) {
   const video = useRef<HTMLVideoElement>(null);
-  const resources = useRef<{ detector?: FaceLandmarker; stream?: MediaStream; raf?: number }>({});
+  const resources = useRef<{ detector?: FaceLandmarker; stream?: MediaStream; raf?: number; timer?: ReturnType<typeof setTimeout> }>({});
   const generation = useRef(0), callback = useRef(onFrame); callback.current = onFrame;
   const [status, setStatus] = useState<"idle" | "loading" | "running" | "error">("idle");
   const [error, setError] = useState("");
   const stop = useCallback(() => {
     generation.current++; const r = resources.current;
     if (r.raf) cancelAnimationFrame(r.raf);
+    if (r.timer) clearTimeout(r.timer);
     r.stream?.getTracks().forEach(t => t.stop()); r.detector?.close(); resources.current = {};
     if (video.current) video.current.srcObject = null;
     setStatus("idle"); callback.current(null, performance.now());
@@ -40,16 +41,17 @@ export function useVision(onFrame: (face: Face | null, now: number) => void) {
             const result = detector.detectForVideo(element, now);
             callback.current(result.faceLandmarks[0] ? readFace(result.faceLandmarks[0]) : null, now);
           }
-          resources.current.raf = requestAnimationFrame(tick);
+          if (window.irisDesktop) resources.current.timer = setTimeout(() => tick(performance.now()), 40);
+          else resources.current.raf = requestAnimationFrame(tick);
         } catch (cause) { stop(); setStatus("error"); setError(cause instanceof Error ? cause.message : "Tracking failed"); }
       };
       resources.current.raf = requestAnimationFrame(tick);
       stream.getVideoTracks()[0].addEventListener("ended", stop, { once: true });
     } catch (cause) {
       if (id !== generation.current) return;
-      stop(); setStatus("error"); setError(cause instanceof Error ? cause.message : "Camera could not start");
+      stop(); setStatus("error"); setError(cause instanceof Error && /chunk|dynamically imported/i.test(cause.message) ? "The application was updated. Reload this page to load the current camera files." : cause instanceof Error ? cause.message : "Camera could not start");
     }
   }, [stop]);
-  useEffect(() => { const pause = () => { if (document.hidden) stop(); }; document.addEventListener("visibilitychange", pause); return () => { document.removeEventListener("visibilitychange", pause); stop(); }; }, [stop]);
+  useEffect(() => { const pause = () => { if (document.hidden && !window.irisDesktop) stop(); }; document.addEventListener("visibilitychange", pause); return () => { document.removeEventListener("visibilitychange", pause); stop(); }; }, [stop]);
   return { video, status, error, start, stop };
 }
