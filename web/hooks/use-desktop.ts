@@ -2,11 +2,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { map, type Profile } from "@/lib/gaze";
 import type { Face } from "@/hooks/use-vision";
-export type DesktopState = { connected: boolean; calibrated: boolean; armed: boolean; emergency: boolean; calibrating: boolean; mode: string; dragging: boolean; dwellMs: number; error: string };
+export type DesktopState = { connected: boolean; calibrated: boolean; armed: boolean; emergency: boolean; calibrating: boolean; mode: string; dragging: boolean; dwellMs: number; lockRadius: number; error: string };
 type DesktopAPI = {
   snapshot(): Promise<DesktopState>; arm(): Promise<DesktopState>; pause(): Promise<DesktopState>;
   calibrate(): Promise<DesktopState>; calibrated(): Promise<DesktopState>; cancelCalibration(): Promise<DesktopState>;
-  configure(dwell: number): Promise<DesktopState>;
+  configure(value: number | { lockRadius: number }): Promise<DesktopState>;
   frame(frame: { x: number; y: number; confidence: number; closed: boolean }): void;
   onState(callback: (state: DesktopState) => void): () => void;
 };
@@ -37,6 +37,6 @@ export function useDesktop() {
     if (!face.closed) smooth.current = p;
     api.frame({ ...p, confidence: face.confidence, closed: face.closed });
   }, []);
-  const configure = useCallback(async (dwell: number) => { try { const next = await window.irisDesktop?.configure(dwell); if (next) setState(next); } catch (cause) { setError(String(cause)); } }, []);
+  const configure = useCallback(async (value: number | { lockRadius: number }) => { try { const next = await window.irisDesktop?.configure(value); if (next) setState(next); } catch (cause) { setError(String(cause)); } }, []);
   return { available, state, error, run, complete, process, configure };
 }

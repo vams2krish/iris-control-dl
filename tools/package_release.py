@@ -1,14 +1,16 @@
 """Build shareable preview assets; exclude all Chromium profiles/runtime state."""
 from pathlib import Path
 import hashlib
+import json
 import shutil
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
 output = root / "release-assets"
 output.mkdir(exist_ok=True)
-bundle = root / "desktop/release/IrisControl-0.2.0-win32-x64"
-archive = output / "iris-control-windows-0.2.0-x64.zip"
+version = json.loads((root / "desktop/package.json").read_text(encoding="utf-8"))["version"]
+bundle = root / f"desktop/release/IrisControl-{version}-win32-x64"
+archive = output / f"iris-control-windows-{version}-x64.zip"
 excluded = {".runtime", "iris-runtime", "node_modules", "startup.log"}
 with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6, strict_timestamps=False) as z:
     for file in sorted(bundle.rglob("*")):

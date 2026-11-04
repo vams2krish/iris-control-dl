@@ -63,7 +63,7 @@ To build a portable distribution:
 npm run package
 ```
 
-Output: `desktop/release/IrisControl-0.2.0-win32-x64/IrisControl.exe`. The package script copies the official Electron distribution and the app into its documented `resources/app` layout. It does not install a service or set up autostart. Electron 45 requires the explicit `install:runtime` step.
+Output: `desktop/release/IrisControl-0.2.1-win32-x64/IrisControl.exe`. The package script copies the official Electron distribution and the app into its documented `resources/app` layout. It does not install a service or set up autostart. Electron 45 requires the explicit `install:runtime` step.
 
 The portable app writes disposable Chromium state and startup diagnostics to `iris-runtime/` next to its EXE. Keep the extracted folder writable. Override `IRIS_RUNTIME_DIR` if a different writable location is needed. No camera frames or gaze samples are logged.
 
@@ -83,6 +83,10 @@ The React renderer has Node disabled, context isolation and sandboxing enabled. 
 The helper uses standard Windows input APIs; this is not browser DOM automation or remote desktop. Web content in Chrome/Firefox does not receive access to the native bridge.
 
 ## Validation
+
+### Fixation stability in 0.2.1
+
+The first Windows trial confirmed cursor movement, but the user found dwell locking difficult. The controller now settles for 250 ms, pins the pointer/ring to the fixation center, tolerates brief excursions, and requires 160 ms of sustained movement to restart dwell. The **Fixation stability** slider controls tolerance (default 4% of monitor width, range 1.5–8%). A larger tolerance helps shaky tracking but makes nearby targets harder to distinguish. These state-machine changes pass regression tests; their real webcam usability needs retesting.
 
 The helper compiles and its dry-run integration test exercises input gating without sending real input. State-machine tests cover arming delay, dwell rearming, invalid/stale frames, face loss, toolbar consumption, blink handling and emergency pause. The packaged app was launched on Windows and its React UI/native bridge were inspected. A full webcam-driven cross-application task study remains outstanding; do not equate dry-run tests with demonstrated accuracy in every application.
 

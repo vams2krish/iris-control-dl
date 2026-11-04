@@ -192,3 +192,67 @@ This implementation is a starting point for iterative assistive-technology evalu
 - [iOS setup and platform integration](ios/README.md)
 
 Source code is licensed under [MIT](LICENSE). Third-party libraries, models, icons, and generated build artifacts retain their respective terms. MediaPipe/Google AI Edge, OpenCV, AndroidX, Next.js, React, Tailwind, Radix UI, and Lucide power the implementation.
+
+## Product showcases
+
+### 1. A private control workspace
+
+Start and stop the front camera, see live tracking status, calibrate your gaze, and choose a practice mode. Camera-off screenshots display no invented FPS or accuracy values. The browser and Windows builds share this indigo/slate interface.
+
+![Iris overview and local practice workspace](docs/images/overview.png)
+
+### 2. Windows: point, hold, select
+
+Run the desktop application, start the camera, calibrate full screen, and enable actions. Then switch to an ordinary application on the primary monitor. The native bridge moves the actual Windows pointer; dwell sends a real click.
+
+**Stability update:** the pointer settles for 250 ms and then holds the fixation position during dwell. Short gaze excursions do not restart selection; sustained movement beyond the tolerance rearms it. The **Fixation stability** slider adjusts tolerance from 1.5% to 8% of monitor width. Start at 4%; increase it if your cursor will not hold steady, and reduce it when selecting nearby targets. This improves the dwell mechanism; it does not establish that the camera estimate is accurate for every target.
+
+Example walkthrough: open Calculator → look at a large key → hold until the ring completes → look away → select another key. Emergency stop is **Ctrl+Alt+F8**. Full webcam-driven desktop click accuracy still needs retesting after the user's initial report that movement worked but locking was difficult.
+
+![Actual Windows app with its fixation-stability slider and pause controls](docs/images/windows-controller.png)
+
+### 3. Browse and scroll across applications
+
+In the native gaze toolbar, select **Scroll**, then dwell in the upper or lower quarter of the primary monitor to send wheel events to the application under the pointer. Use **Next tab** for Ctrl+Tab, **Back** for Alt+Left, and **Apps** for Alt+Tab. These are Windows input actions, so the target does not need to be an Iris webpage or have an Iris extension.
+
+Example walkthrough: open a long page in Chrome/Firefox/Edge → enable Scroll → look toward the lower quarter to scroll → return to Cursor before selecting a link. Secure/elevated surfaces and additional monitors are outside this preview's supported scope.
+
+### 4. Type with a practice keyboard or Windows keyboard
+
+The browser practice area provides a small keyboard with letters, Space and Backspace. In Windows desktop mode, use the native **Keyboard** toolbar target to open Windows' On-Screen Keyboard and dwell on its keys to type into the focused application.
+
+![Practice keyboard with HELLO IRIS sample text](docs/images/typing-workspace.png)
+
+The sample above was entered through the practice controls with the camera off; it shows the interface, not a measured gaze-typing result. System keyboard accuracy and swipe typing are not demonstrated by this screenshot; swipe typing is not implemented.
+
+### 5. Right click, double click and drag/drop
+
+Choose **Right** or **Double** on the Windows toolbar, then look at the intended application target and dwell. The action happens at that target and returns to Cursor mode. For a drag, choose **Drag**, dwell at the source, look away toward the destination and dwell again to release. Face loss and emergency stop release held input. Practice with disposable objects before moving files or editing real work.
+
+### 6. Personal gesture timing
+
+Change dwell duration to balance speed and accidental selections. Android also supports remapping dwell, deliberate double blink and long blink in its native settings. The desktop stability slider is separate from dwell duration: increasing tolerance makes locking easier, while increasing dwell time makes activation more deliberate.
+
+![Dwell duration and Android gesture mapping interface](docs/images/gesture-settings.png)
+
+### 7. Android: tested on a real Pixel
+
+The Android 0.1.1 APK was installed on a **Pixel 4a (5G), Android 14**. The user confirmed face detection, completed calibration, a visible gaze cursor, and **a digit entered by gaze dwell in the separate Calculator app**. Package inspection also confirms that the updated APK contains no INTERNET permission. This is a user-observed smoke test; it is not a benchmark across devices, lighting conditions or applications.
+
+Everyday flow: open Iris → Start camera → verify calibration → enable accessibility if needed → Enable gaze actions → use other apps → Pause/Stop when finished. [Exact Android setup and recovery steps](docs/INSTALLATION.md#android-install-on-the-phone).
+
+### 8. Guided platform setup
+
+Download the APK from Releases, follow numbered setup steps, and use the linked installation guide for permission explanations, restricted settings, USB testing, and stopping/restarting tracking. iPhone users are directed to Apple's built-in Eye Tracking; there is no Iris IPA to install.
+
+![Device setup with APK download and platform guide](docs/images/device-setup.png)
+
+### 9. iPhone system accessibility path
+
+On a supported iPhone/iOS version, enable **Settings → Accessibility → Eye Tracking**, complete Apple's calibration and configure the available dwell options. This is an Apple system feature, not a capability of the Iris web page or the custom ARKit starter. [iPhone steps](docs/INSTALLATION.md#iphone-built-in-eye-tracking).
+
+### 10. Local processing and clear recovery
+
+Use a packaged local model rather than a cloud endpoint. Stop camera access with a visible control. Android starts with actions paused; Windows requires calibration and explicit enable. A stale web-camera chunk presents a page-reload recovery action. No cloud account, API key, face recording or uploaded camera stream is required for inference.
+
+For supported behavior versus remaining tests, see the [validation record](docs/VALIDATION.md), [hardware checklist](docs/TESTING.md), and [third-party notices](THIRD_PARTY_NOTICES.md).

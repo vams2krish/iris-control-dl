@@ -18,12 +18,17 @@ class DesktopController {
     this.bounds = null; this.calibrated = false; this.armed = false; this.emergency = false;
     this.mode = "cursor"; this.dragging = false; this.lastSequence = -1; this.lastFrame = 0;
     this.anchor = null; this.since = 0; this.fired = false; this.closedAt = null; this.firstBlink = null;
-    this.lastAction = -Infinity; this.readyAt = 0; this.dwellMs = 1200;
+    this.lastAction = -Infinity; this.readyAt = 0; this.dwellMs = 1200; this.lockRadius = .04; this.escapeAt = null;
   }
   attach(bounds) { this.bounds = bounds; this.pause(); }
-  snapshot() { return { connected: !!this.bounds, calibrated: this.calibrated, armed: this.armed, emergency: this.emergency, mode: this.mode, dragging: this.dragging, dwellMs: this.dwellMs }; }
-  configure(dwell) { if (Number.isFinite(dwell)) this.dwellMs = Math.max(700, Math.min(2500, Math.round(dwell))); }
-  resetFixation() { this.anchor = null; this.since = 0; this.fired = false; this.closedAt = null; this.firstBlink = null; }
+  snapshot() { return { connected: !!this.bounds, calibrated: this.calibrated, armed: this.armed, emergency: this.emergency, mode: this.mode, dragging: this.dragging, dwellMs: this.dwellMs, lockRadius: this.lockRadius }; }
+  configure(value) {
+    const dwell = typeof value === "number" ? value : value?.dwellMs;
+    if (Number.isFinite(dwell)) this.dwellMs = Math.max(700, Math.min(2500, Math.round(dwell)));
+    if (typeof value === "object" && Number.isFinite(value?.lockRadius)) this.lockRadius = Math.max(.015, Math.min(.08, value.lockRadius));
+    this.resetFixation();
+  }
+  resetFixation() { this.anchor = null; this.since = 0; this.fired = false; this.closedAt = null; this.firstBlink = null; this.escapeAt = null; }
   pause(emergency = false) {
     this.armed = false; this.emergency = emergency; this.dragging = false; this.resetFixation();
     this.send("STATE 0");
@@ -65,18 +70,30 @@ class DesktopController {
       }
     }
     if (this.firstBlink !== null && now - this.firstBlink > 950) this.firstBlink = null;
-    // Gaze toolbar does not move the real pointer, so no underlying app receives its dwell.
-    if (live && slot < 0) this.send(`MOVE ${x} ${y}`);
     if ((!live && (slot !== 0 || this.emergency || !this.armed && !this.calibrated)) || this.armed && !live) {
       this.anchor = null; this.send(`DRAW ${x} ${y} 0 0 ${this.mode} 0`); return true;
     }
     const key = slot >= 0 ? `toolbar:${slot}` : this.mode === "scroll" ? (f.y < .25 ? "up" : f.y > .75 ? "down" : "center") : "point";
-    const moved = !this.anchor || this.anchor.key !== key || Math.hypot(x - this.anchor.x, y - this.anchor.y) > Math.max(20, b.width * .022);
-    if (moved) { this.anchor = { x, y, key }; this.since = now; this.fired = false; }
+    let outside = false;
+    let moved = !this.anchor || this.anchor.key !== key;
+    if (!moved && Math.hypot(x - this.anchor.x, y - this.anchor.y) > Math.max(20, b.width * this.lockRadius)) {
+      outside = true;
+      if (this.escapeAt === null) this.escapeAt = now;
+      // Brief outliers no longer throw away the fixation. Intentional movement rearms.
+      if (now - this.escapeAt >= 160) moved = true;
+    } else this.escapeAt = null;
+    if (moved) { this.anchor = { x, y, key }; this.since = now; this.fired = false; this.escapeAt = null; outside = false; }
+    // First let the gaze settle, then pin the physical pointer AND dwell ring to the
+    // same target. Otherwise eye jitter keeps moving the point that will be clicked.
+    if (now - this.since < 250 && !outside) { this.anchor.x += .4 * (x - this.anchor.x); this.anchor.y += .4 * (y - this.anchor.y); }
+    const locked = now - this.since >= 250 && !(this.dragging && this.fired);
+    const outputX = locked && slot < 0 ? Math.round(this.anchor.x) : x;
+    const outputY = locked && slot < 0 ? Math.round(this.anchor.y) : y;
+    if (live && slot < 0) this.send(`MOVE ${outputX} ${outputY}`);
     const duration = slot >= 0 ? Math.max(1500, this.dwellMs) : this.dwellMs;
     const progress = Math.min(1, (now - this.since) / duration);
-    this.send(`DRAW ${x} ${y} ${progress.toFixed(3)} ${live ? 1 : 0} ${this.mode} ${this.dragging ? 1 : 0}`);
-    if (progress < 1 || this.fired) return true;
+    this.send(`DRAW ${outputX} ${outputY} ${progress.toFixed(3)} ${live ? 1 : 0} ${this.mode} ${this.dragging ? 1 : 0}`);
+    if (progress < 1 || this.fired || outside) return true;
     this.fired = true;
     if (slot >= 0) {
       if (slot === 0) { if (this.armed) this.pause(); else this.arm(); return true; }

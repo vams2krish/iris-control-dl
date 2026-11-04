@@ -31,11 +31,11 @@ Real keyboard typing, blink precision, sustained tracking, thermal behavior and 
 ## Windows desktop preview
 
 - Native C# helper compiled with the Windows .NET Framework compiler.
-- Desktop test suite: 12 passed, including input-gating dry-run integration, freshness/sequence checks, fixation rearming, startup delay, face loss, emergency pause, blink handling, right-click target selection, drag/drop and static-server Host/cache behavior.
+- Desktop test suite: 15 passed, including input-gating dry-run integration, freshness/sequence checks, fixation rearming, startup delay, face loss, emergency pause, blink handling, right-click target selection, drag/drop, static-server Host/cache behavior and three fixation-stability regression cases.
 - The dry-run helper never invokes Windows mouse/keyboard injection; these tests verify the control path, not real desktop selection accuracy.
 - The portable Windows app packaged and launched, displaying the React UI and the desktop bridge controls while actions remained paused.
 - Web strict typecheck, 5 web unit tests and static build pass with desktop integration.
 - The web preview recovered from the stale-chunk/error page by serving the current build. The local static server now uses `Cache-Control: no-store`, and the UI provides explicit reload recovery for stale camera chunks.
-- Full webcam-driven Chrome/Firefox/desktop task accuracy remains to be evaluated. Primary-monitor input only; secure/elevated Windows surfaces are excluded.
+- The user confirmed Windows cursor movement in the first trial but reported that gaze did not lock easily. This is not recorded as a successful Windows click test. Version 0.2.1 adds fixation pinning, brief-outlier tolerance, movement hysteresis and a configurable lock radius; regression tests pass, while the webcam usability retest remains pending. Primary-monitor input only; secure/elevated Windows surfaces are excluded.
 
 The host system drive was full at first build, causing Gradle cache writes and JVM/Node allocation failures. Project-local caches and temporary paths on the workspace drive, sequential builds, a one-worker Gradle configuration, Serial GC, and a 128 MiB test JVM allowed Android validation to finish. No unrelated user files were removed.

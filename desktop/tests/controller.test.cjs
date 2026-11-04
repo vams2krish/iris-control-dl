@@ -23,7 +23,7 @@ test("no OS actions while paused and a 3-second startup delay", () => {
 test("dwell fires once per fixation, then rearms after gaze moves", () => {
   const { c, commands, frame, time } = setup(); c.arm(); time(3100); frame(); time(4400); frame(); time(6500); frame();
   assert.equal(commands.filter(x => x === "CLICK").length, 1);
-  time(6600); frame(.7); time(8000); frame(.7); assert.equal(commands.filter(x => x === "CLICK").length, 2);
+  time(6600); frame(.7); time(6800); frame(.7); time(8100); frame(.7); assert.equal(commands.filter(x => x === "CLICK").length, 2);
 });
 test("face loss and stale watchdog release held input and cancel dwell", () => {
   const { c, commands, frame, time } = setup(); c.arm(); time(3100); frame(); time(4100); frame(.5,.5,0);
@@ -58,5 +58,18 @@ test("right-click mode acts on the next application target, never under the tool
 test("drag mode presses at the source and releases after a new destination dwell", () => {
   const { c, commands, frame, time } = setup(); c.arm(); c.mode="drag";
   time(3100); frame(.3,.5); time(4400); frame(.3,.5); assert.equal(c.dragging,true); assert.ok(commands.includes("DOWN"));
-  time(4500); frame(.7,.5); time(5800); frame(.7,.5); assert.equal(c.dragging,false); assert.ok(commands.includes("UP")); assert.equal(c.mode,"cursor");
+  time(4500); frame(.7,.5); time(4700); frame(.7,.5); time(6000); frame(.7,.5); assert.equal(c.dragging,false); assert.ok(commands.includes("UP")); assert.equal(c.mode,"cursor");
+});
+test("jitter inside tolerance holds the same physical click target", () => {
+  const { c, commands, frame, time } = setup(); c.arm(); time(3100); frame(); time(3400); frame(.51,.51); time(3500); frame(.53,.49); time(4400); frame(.48,.53);
+  assert.equal(commands.filter(x => x === "CLICK").length,1);
+  assert.ok(commands.filter(x => x.startsWith("MOVE")).every(x => x === "MOVE 960 540"));
+});
+test("brief gaze excursion does not discard an otherwise stable fixation", () => {
+  const { c, commands, frame, time } = setup(); c.arm(); time(3100); frame(); time(3500); frame(); time(4000); frame(.7); time(4080); frame(); time(4400); frame();
+  assert.equal(commands.filter(x => x === "CLICK").length,1);
+});
+test("sustained gaze movement restarts dwell instead of clicking the old target", () => {
+  const { c, commands, frame, time } = setup(); c.arm(); time(3100); frame(); time(3500); frame(.8); time(3700); frame(.8); time(4200); frame(.8);
+  assert.equal(commands.includes("CLICK"),false); time(5000); frame(.8); assert.equal(commands.filter(x => x === "CLICK").length,1);
 });
