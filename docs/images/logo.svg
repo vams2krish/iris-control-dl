@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="80" viewBox="0 0 320 80" fill="none">
+<rect width="320" height="80" rx="14" fill="#F7F8FB"/>
+<rect width="64" height="64" x="8" y="8" rx="18" fill="#4F46E5"/>
+<path d="M20 40Q40 14 60 40Q40 66 20 40Z" stroke="#FFF" stroke-width="2"/>
+<circle cx="40" cy="40" r="8" stroke="#FFF" stroke-width="2"/><circle cx="43" cy="37" r="2" fill="#FFF"/>
+<text x="90" y="49" font-family="Arial,Helvetica,sans-serif" font-size="29" font-weight="600" letter-spacing="-1" fill="#182034">iris</text><text x="137" y="48" font-family="Arial,Helvetica,sans-serif" font-size="23" fill="#64748B"> / control</text>
+</svg>
