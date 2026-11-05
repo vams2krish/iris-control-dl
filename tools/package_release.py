@@ -9,7 +9,7 @@ root = Path(__file__).resolve().parents[1]
 output = root / "release-assets"
 output.mkdir(exist_ok=True)
 version = json.loads((root / "desktop/package.json").read_text(encoding="utf-8"))["version"]
-bundle = root / f"desktop/release/IrisControl-{version}-win32-x64"
+bundle = root / f"desktop/release/package/IrisControl-{version}-win32-x64"
 archive = output / f"iris-control-windows-{version}-x64.zip"
 excluded = {".runtime", "iris-runtime", "node_modules", "startup.log"}
 with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6, strict_timestamps=False) as z:

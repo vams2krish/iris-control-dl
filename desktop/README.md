@@ -10,6 +10,8 @@ The 0.2.1 user retest still reported jitter/inaccuracy. Increasing dwell toleran
 
 **Head pointer:** start camera → choose Head pointer → click Center head → hold your head still for 30 valid frames → enable actions. Move your head slightly left/right/up/down to steer the mouse; return to your neutral pose to stop, then dwell. The pointer follows the steering position without gaze pinning, and clicks do not accumulate while it moves faster than 8 pixels/second. If your posture changes, pause and center again. This mode deliberately uses head motion, not eye gaze.
 
+The neutral dead zone is adapted to the noise observed during centering. Head mode does not depend on eyelid/blink classification; use dwell and the toolbar for its clicks.
+
 **Eye pointer:** start camera → choose Eye pointer → Calibrate + validate. Look at nine training dots followed by five validation dots (four new locations plus a center repeat). The app reports mean miss, worst miss and within-target jitter. Native eye actions stay disabled unless mean miss ≤5%, worst miss ≤10%, and 90th-percentile jitter ≤3.5% in normalized screen coordinates. These are coarse engineering thresholds, not a medical or precision certification. A failed check directs you to the head pointer.
 
 Old browser eye profiles are rejected because the feature basis changed. Recalibrate. Android 0.1.1 is unchanged by this Windows/web update.
@@ -77,7 +79,7 @@ To build a portable distribution:
 npm run package
 ```
 
-Output: `desktop/release/IrisControl-0.3.0-win32-x64/IrisControl.exe`. The package script copies the official Electron distribution and the app into its documented `resources/app` layout. It does not install a service or set up autostart. Electron 45 requires the explicit `install:runtime` step.
+Output: `desktop/release/package/IrisControl-0.3.0-win32-x64/IrisControl.exe`. The package script copies the official Electron distribution and the app into its documented `resources/app` layout. It does not install a service or set up autostart. Electron 45 requires the explicit `install:runtime` step. Close other Iris copies before opening another portable build; the native emergency shortcut must be registered by only one running controller.
 
 The portable app writes disposable Chromium state and startup diagnostics to `iris-runtime/` next to its EXE. Keep the extracted folder writable. Override `IRIS_RUNTIME_DIR` if a different writable location is needed. No camera frames or gaze samples are logged.
 

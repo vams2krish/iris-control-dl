@@ -40,7 +40,7 @@ export function useDesktop() {
     const mode=inputMode.current;
     if (!face || face.confidence < .65) { smooth.current=null;recent.current=[];head.current.lost();if(centering.current){centering.current=[];setCenterCount(0);}api.frame({x:.5,y:.5,confidence:0,closed:false,inputMode:mode});return; }
     if(mode==="head"&&centering.current){
-      if(face.closed)return;centering.current.push(face.head);setCenterCount(centering.current.length);
+      centering.current.push(face.head);setCenterCount(centering.current.length);
       if(centering.current.length>=30){const report=head.current.center(centering.current);centering.current=null;setCenterCount(null);
         if(report.passed)void api.calibrated(report).then(setState).catch(c=>setError(String(c)));
         else {setError("Head moved during centering. Keep still and try Center head again.");void api.cancelCalibration().then(setState);}
@@ -48,13 +48,14 @@ export function useDesktop() {
     }
     const previous=smooth.current;
     let raw:Point|null;
-    if(mode==="head"){if(face.closed)head.current.lost();raw=face.closed?previous:head.current.update(face.head,now);}
+    if(mode==="head")raw=head.current.update(face.head,now);
     else if(profile.current){const p=map(profile.current,face.features);if(!face.closed){recent.current.push(p);if(recent.current.length>5)recent.current.shift();}raw=recent.current.length?{x:median(recent.current.map(v=>v.x)),y:median(recent.current.map(v=>v.y))}:p;}
     else raw=null;
     if(!raw){api.frame({x:.5,y:.5,confidence:0,closed:false,inputMode:mode});return;}
-    const p=face.closed&&previous?previous:mode==="head"?raw:previous?{x:previous.x+.25*(raw.x-previous.x),y:previous.y+.25*(raw.y-previous.y)}:raw;
-    if (!face.closed) smooth.current = p;
-    api.frame({ ...p, confidence: face.confidence, closed: face.closed,inputMode:mode });
+    const closed=mode==="gaze"&&face.closed;
+    const p=closed&&previous?previous:mode==="head"?raw:previous?{x:previous.x+.25*(raw.x-previous.x),y:previous.y+.25*(raw.y-previous.y)}:raw;
+    if (!closed) smooth.current = p;
+    api.frame({ ...p, confidence: face.confidence, closed,inputMode:mode });
   }, []);
   const configure = useCallback(async (value:DesktopConfig) => { try { if(typeof value==="object"&&value.inputMode){profile.current=null;head.current.reset();smooth.current=null;centering.current=null;setCenterCount(null);}const next = await window.irisDesktop?.configure(value); if (next) setState(next); } catch (cause) { setError(String(cause)); } }, []);
   const centerHead=useCallback(async()=>{if(await run("calibrate")){centering.current=[];setCenterCount(0);setError("");}},[run]);

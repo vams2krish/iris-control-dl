@@ -1,6 +1,6 @@
 // Electron's manual distribution layout: runtime + resources/app, no installer or signing.
 const fs = require("node:fs"), path = require("node:path");
-const root = path.resolve(__dirname, ".."), version = require("../package.json").version, target = path.join(root, `release/IrisControl-${version}-win32-x64`);
+const root = path.resolve(__dirname, ".."), version = require("../package.json").version, target = path.join(root, `release/package/IrisControl-${version}-win32-x64`);
 fs.mkdirSync(target, { recursive: true });
 fs.cpSync(path.join(root, "node_modules/electron/dist"), target, { recursive: true });
 const app = path.join(target, "resources/app"); fs.mkdirSync(app, { recursive: true });
