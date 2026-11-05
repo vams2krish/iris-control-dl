@@ -2,6 +2,11 @@
 const { performance } = require("node:perf_hooks");
 
 const LABELS = ["Pause", "Cursor", "Scroll", "Double", "Right", "Drag", "Keyboard", "Back", "Next tab", "Apps"];
+function acceptableCalibration(report, mode) {
+  if (!report || report.kind !== mode || report.passed !== true || !Number.isFinite(report.jitter)) return false;
+  if (mode === "head") return Number.isInteger(report.samples) && report.samples >= 30 && report.jitter >= 0 && report.jitter <= .012;
+  return Number.isInteger(report.points) && report.points >= 5 && Number.isInteger(report.samples) && report.samples >= 100 && Number.isFinite(report.meanError) && report.meanError >= 0 && report.meanError <= .05 && Number.isFinite(report.maxError) && report.maxError >= 0 && report.maxError <= .1 && report.jitter >= 0 && report.jitter <= .035;
+}
 function validFrame(f, wallNow = Date.now()) {
   return f && Number.isInteger(f.sequence) && f.sequence >= 0 &&
     Number.isFinite(f.sentAt) && wallNow - f.sentAt >= -100 && wallNow - f.sentAt <= 300 &&
@@ -19,13 +24,16 @@ class DesktopController {
     this.mode = "cursor"; this.dragging = false; this.lastSequence = -1; this.lastFrame = 0;
     this.anchor = null; this.since = 0; this.fired = false; this.closedAt = null; this.firstBlink = null;
     this.lastAction = -Infinity; this.readyAt = 0; this.dwellMs = 1200; this.lockRadius = .04; this.escapeAt = null;
+    this.inputMode = "gaze"; this.quality = null;
+    this.headLast = null;
   }
   attach(bounds) { this.bounds = bounds; this.pause(); }
-  snapshot() { return { connected: !!this.bounds, calibrated: this.calibrated, armed: this.armed, emergency: this.emergency, mode: this.mode, dragging: this.dragging, dwellMs: this.dwellMs, lockRadius: this.lockRadius }; }
+  snapshot() { return { connected: !!this.bounds, calibrated: this.calibrated, armed: this.armed, emergency: this.emergency, mode: this.mode, dragging: this.dragging, dwellMs: this.dwellMs, lockRadius: this.lockRadius, inputMode: this.inputMode, quality: this.quality }; }
   configure(value) {
     const dwell = typeof value === "number" ? value : value?.dwellMs;
     if (Number.isFinite(dwell)) this.dwellMs = Math.max(700, Math.min(2500, Math.round(dwell)));
     if (typeof value === "object" && Number.isFinite(value?.lockRadius)) this.lockRadius = Math.max(.015, Math.min(.08, value.lockRadius));
+    if (value && ["head","gaze"].includes(value.inputMode) && value.inputMode !== this.inputMode) { this.inputMode = value.inputMode; this.mode = "cursor"; this.invalidate(); }
     this.resetFixation();
   }
   resetFixation() { this.anchor = null; this.since = 0; this.fired = false; this.closedAt = null; this.firstBlink = null; this.escapeAt = null; }
@@ -38,7 +46,8 @@ class DesktopController {
     this.emergency = false; this.armed = true; this.readyAt = this.clock() + 3000;
     this.resetFixation(); this.send("STATE 0"); // native injection starts only after fresh frames + countdown
   }
-  invalidate() { this.calibrated = false; this.pause(); }
+  invalidate() { this.calibrated = false; this.quality = null; this.pause(); }
+  acceptCalibration(report) { this.quality = report; this.calibrated = acceptableCalibration(report,this.inputMode); return this.calibrated; }
   watchdog() { if (this.clock() - this.lastFrame > 500) { this.resetFixation(); this.dragging = false; this.send("STATE 0"); this.send("HIDE"); } }
   action(command, now) {
     if (!this.armed || now < this.readyAt || now - this.lastAction < 900) return false;
@@ -46,7 +55,7 @@ class DesktopController {
   }
   frame(f, wallNow) {
     const now = this.clock();
-    if (!validFrame(f, wallNow) || f.sequence <= this.lastSequence) return false;
+    if (!validFrame(f, wallNow) || f.sequence <= this.lastSequence || (f.inputMode ?? "gaze") !== this.inputMode) return false;
     this.lastSequence = f.sequence; this.lastFrame = now;
     if (!this.bounds || !this.calibrated || f.confidence < .65) {
       this.resetFixation(); this.dragging = false; this.send("STATE 0"); this.send("HIDE"); return false;
@@ -70,13 +79,22 @@ class DesktopController {
       }
     }
     if (this.firstBlink !== null && now - this.firstBlink > 950) this.firstBlink = null;
+    if(this.inputMode === "head") {
+      const old=this.headLast;this.headLast={x,y,now};
+      const speed=old&&now>old.now?Math.hypot(x-old.x,y-old.y)*1000/(now-old.now):0;
+      if(live&&speed>8) {
+        this.anchor=null;this.fired=false;
+        if(slot<0)this.send(`MOVE ${x} ${y}`);
+        this.send(`DRAW ${x} ${y} 0 1 ${this.mode} ${this.dragging?1:0}`);return true;
+      }
+    }
     if ((!live && (slot !== 0 || this.emergency || !this.armed && !this.calibrated)) || this.armed && !live) {
       this.anchor = null; this.send(`DRAW ${x} ${y} 0 0 ${this.mode} 0`); return true;
     }
     const key = slot >= 0 ? `toolbar:${slot}` : this.mode === "scroll" ? (f.y < .25 ? "up" : f.y > .75 ? "down" : "center") : "point";
     let outside = false;
     let moved = !this.anchor || this.anchor.key !== key;
-    if (!moved && Math.hypot(x - this.anchor.x, y - this.anchor.y) > Math.max(20, b.width * this.lockRadius)) {
+    if (!moved && Math.hypot(x - this.anchor.x, y - this.anchor.y) > Math.max(12, b.width * (this.inputMode === "head" ? .008 : this.lockRadius))) {
       outside = true;
       if (this.escapeAt === null) this.escapeAt = now;
       // Brief outliers no longer throw away the fixation. Intentional movement rearms.
@@ -86,7 +104,7 @@ class DesktopController {
     // First let the gaze settle, then pin the physical pointer AND dwell ring to the
     // same target. Otherwise eye jitter keeps moving the point that will be clicked.
     if (now - this.since < 250 && !outside) { this.anchor.x += .4 * (x - this.anchor.x); this.anchor.y += .4 * (y - this.anchor.y); }
-    const locked = now - this.since >= 250 && !(this.dragging && this.fired);
+    const locked = this.inputMode === "gaze" && now - this.since >= 250 && !(this.dragging && this.fired);
     const outputX = locked && slot < 0 ? Math.round(this.anchor.x) : x;
     const outputY = locked && slot < 0 ? Math.round(this.anchor.y) : y;
     if (live && slot < 0) this.send(`MOVE ${outputX} ${outputY}`);
@@ -114,4 +132,4 @@ class DesktopController {
     return true;
   }
 }
-module.exports = { DesktopController, validFrame, toolbar, LABELS };
+module.exports = { DesktopController, validFrame, toolbar, LABELS, acceptableCalibration };

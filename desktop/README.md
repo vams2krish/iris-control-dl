@@ -4,6 +4,20 @@ The Windows app uses the same React interface as the web demo, plus a local Elec
 
 This is an experimental development build for **Windows 10/11, x64**, with a front-facing webcam. It cannot control the lock screen, UAC secure desktop, or apps running at a higher integrity level. Actual gaze accuracy depends on camera placement and calibration; test harmless targets first.
 
+## Version 0.3: choose an input that works for you
+
+The 0.2.1 user retest still reported jitter/inaccuracy. Increasing dwell tolerance was insufficient. Version 0.3 corrects the Windows/web eye feature calculation, standardizes and robustly fits calibration samples, and requires a separate accuracy check before enabling eye clicks. It also provides a **Head pointer** alternative. Neither mode has demonstrated universal real-world accuracy.
+
+**Head pointer:** start camera → choose Head pointer → click Center head → hold your head still for 30 valid frames → enable actions. Move your head slightly left/right/up/down to steer the mouse; return to your neutral pose to stop, then dwell. The pointer follows the steering position without gaze pinning, and clicks do not accumulate while it moves faster than 8 pixels/second. If your posture changes, pause and center again. This mode deliberately uses head motion, not eye gaze.
+
+**Eye pointer:** start camera → choose Eye pointer → Calibrate + validate. Look at nine training dots followed by five validation dots (four new locations plus a center repeat). The app reports mean miss, worst miss and within-target jitter. Native eye actions stay disabled unless mean miss ≤5%, worst miss ≤10%, and 90th-percentile jitter ≤3.5% in normalized screen coordinates. These are coarse engineering thresholds, not a medical or precision certification. A failed check directs you to the head pointer.
+
+Old browser eye profiles are rejected because the feature basis changed. Recalibrate. Android 0.1.1 is unchanged by this Windows/web update.
+
+The corrected eye features use the eye-corner coordinate basis, normalize both axes by eye width, and account for the video aspect ratio. Eyelid aperture is used only for blink detection. Per-target medians reduce training outliers; standardization prevents the ridge penalty from suppressing small iris signals. A five-frame median precedes cursor smoothing.
+
+MediaPipe landmarks alone are not a dedicated gaze estimator. Google's [Iris documentation](https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/iris.md) explicitly distinguishes iris tracking from inferring a person's point of regard. This app's fitted screen mapping remains experimental.
+
 ## Install the portable app
 
 1. Open the repository's [Releases](https://github.com/vams2krish/iris-control-dl/releases) page.
@@ -63,7 +77,7 @@ To build a portable distribution:
 npm run package
 ```
 
-Output: `desktop/release/IrisControl-0.2.1-win32-x64/IrisControl.exe`. The package script copies the official Electron distribution and the app into its documented `resources/app` layout. It does not install a service or set up autostart. Electron 45 requires the explicit `install:runtime` step.
+Output: `desktop/release/IrisControl-0.3.0-win32-x64/IrisControl.exe`. The package script copies the official Electron distribution and the app into its documented `resources/app` layout. It does not install a service or set up autostart. Electron 45 requires the explicit `install:runtime` step.
 
 The portable app writes disposable Chromium state and startup diagnostics to `iris-runtime/` next to its EXE. Keep the extracted folder writable. Override `IRIS_RUNTIME_DIR` if a different writable location is needed. No camera frames or gaze samples are logged.
 

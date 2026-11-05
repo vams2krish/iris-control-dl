@@ -1,5 +1,5 @@
 const { test } = require("node:test"), assert = require("node:assert/strict");
-const { DesktopController, validFrame, toolbar } = require("../controller.cjs");
+const { DesktopController, validFrame, toolbar,acceptableCalibration } = require("../controller.cjs");
 function setup() {
   let now = 0, sequence = 0; const commands = [];
   const c = new DesktopController(command => commands.push(command), () => now);
@@ -72,4 +72,22 @@ test("brief gaze excursion does not discard an otherwise stable fixation", () =>
 test("sustained gaze movement restarts dwell instead of clicking the old target", () => {
   const { c, commands, frame, time } = setup(); c.arm(); time(3100); frame(); time(3500); frame(.8); time(3700); frame(.8); time(4200); frame(.8);
   assert.equal(commands.includes("CLICK"),false); time(5000); frame(.8); assert.equal(commands.filter(x => x === "CLICK").length,1);
+});
+test("desktop process rejects missing, poor and fabricated non-finite calibration quality",()=>{
+  assert.equal(acceptableCalibration(null,"gaze"),false);
+  const report={kind:"gaze",passed:true,points:5,samples:120,meanError:.02,maxError:.04,jitter:.01};
+  assert.equal(acceptableCalibration(report,"gaze"),true);
+  assert.equal(acceptableCalibration({...report,meanError:.2},"gaze"),false);
+  assert.equal(acceptableCalibration({...report,jitter:NaN},"gaze"),false);
+  const {c}=setup();c.invalidate();c.acceptCalibration({...report,meanError:.2});assert.throws(()=>c.arm());
+});
+test("switching pointer source invalidates calibration and rejects frames from the old source",()=>{
+  const {c,frame}=setup();c.arm();c.configure({inputMode:"head"});assert.equal(c.armed,false);assert.equal(c.calibrated,false);assert.equal(frame(),false);
+  assert.equal(c.acceptCalibration({kind:"head",samples:30,jitter:.001,passed:true}),true);
+});
+test("head pointer does not pin the real cursor or click while steering; dwell starts after stopping",()=>{
+  const {c,time,commands}=setup();c.configure({inputMode:"head"});c.calibrated=true;c.arm();let sequence=0;
+  const frame=x=>c.frame({x,y:.5,confidence:.9,closed:false,inputMode:"head",sequence:++sequence,sentAt:1000},1000);
+  time(3100);frame(.5);time(3500);frame(.55);time(4000);frame(.6);assert.ok(commands.includes("MOVE 1151 540"));assert.equal(commands.includes("CLICK"),false);
+  time(4100);frame(.6);time(5400);frame(.6);assert.equal(commands.filter(s=>s==="CLICK").length,1);
 });

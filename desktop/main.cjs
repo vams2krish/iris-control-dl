@@ -40,6 +40,7 @@ async function start() {
   window = new BrowserWindow({ width: 1280, height: 900, title: "Iris Control · Windows", backgroundColor: "#f7f8fb",
     webPreferences: { preload: path.join(__dirname, "preload.cjs"), sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false, webSecurity: true, spellcheck: false } });
   window.removeMenu();
+  window.on("page-title-updated",event=>{event.preventDefault();window.setTitle(`Iris Control ${app.getVersion()} · Windows`);});
   helper = spawn(helperPath, [], { windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
   window.webContents.on("did-fail-load", (_event, code, description) => log("UI load failed " + code + " " + description));
   window.webContents.on("render-process-gone", (_event, details) => log("Renderer stopped " + details.reason));
@@ -74,14 +75,17 @@ async function start() {
   handle("iris:state", () => state());
   handle("iris:pause", () => { pause(); return state(); });
   handle("iris:arm", () => { if (calibration) throw new Error("Finish calibration first"); error = ""; controller.arm(); helper.stdin.write("RESET\n"); notify(); return state(); });
-  handle("iris:configure", dwell => { controller.configure(dwell); notify(); return state(); });
+  handle("iris:configure", value => { if(value?.inputMode){if(calibration)endCalibration();error="";} controller.configure(value); notify(); return state(); });
   handle("iris:calibrate", () => {
-    controller.invalidate(); helper.stdin.write("HIDE\n"); calibration = true; oldBounds = window.getBounds();
-    window.setBounds(screen.getPrimaryDisplay().bounds); window.setFullScreen(true); window.focus(); notify(); return state();
+    controller.invalidate(); error=""; helper.stdin.write("HIDE\n"); calibration = true; oldBounds = window.getBounds();
+    if(controller.inputMode === "gaze") { window.setBounds(screen.getPrimaryDisplay().bounds); window.setFullScreen(true); }
+    window.focus(); notify(); return state();
   });
-  handle("iris:calibrated", () => {
-    if (!calibration || !window.isFullScreen()) throw new Error("Start full-screen desktop calibration first");
-    controller.calibrated = true; endCalibration(); notify(); return state();
+  handle("iris:calibrated", report => {
+    if (!calibration || controller.inputMode === "gaze" && !window.isFullScreen()) throw new Error("Start desktop calibration first");
+    const accepted = controller.acceptCalibration(report); endCalibration();
+    error = accepted ? "" : "Accuracy check failed. Eye pointer remains disabled; try the head pointer.";
+    notify(); return state();
   });
   handle("iris:cancel-calibration", () => { controller.invalidate(); endCalibration(); notify(); return state(); });
   ipcMain.on("iris:frame", (event, frame) => { if (!trusted(event) || calibration) return; const before = `${controller.armed}:${controller.mode}:${controller.dragging}`; controller.frame(frame); if (before !== `${controller.armed}:${controller.mode}:${controller.dragging}`) notify(); });

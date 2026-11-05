@@ -32,6 +32,8 @@ The ordinary browser demo does **not** connect to or remotely operate a phone or
 
 ## Getting started
 
+**Windows 0.3 accuracy update:** the 0.2.1 retest still found eye tracking jittery/inaccurate. The new build corrects eyelid-dependent eye coordinates and calibration scaling, adds five validation targets that must pass before eye clicks are enabled, and offers a separately labeled **head-pointer alternative**. For the head pointer, start the camera, select Head pointer, center while still, enable actions, then move your head slightly to steer and return to neutral to stop/dwell. [Mode instructions and measured-check thresholds](desktop/README.md#version-03-choose-an-input-that-works-for-you). Actual webcam usability still requires retesting; a passing unit test does not demonstrate accurate eye tracking.
+
 ### Windows desktop control across applications
 
 Download the Windows portable ZIP from [Releases](https://github.com/vams2krish/iris-control-dl/releases), extract the whole folder, and run `IrisControl.exe`. Start the camera, run **Calibrate full screen**, then explicitly **Enable desktop actions**. After the three-second delay, switch to Chrome, Firefox, Edge or another desktop app. Gaze moves the real mouse cursor; dwell selects the desktop surface. The top gaze toolbar handles pause/resume, scroll, right/double click, drag/drop, on-screen keyboard, Back, next tab and app switching. **Ctrl+Alt+F8** is the emergency stop.

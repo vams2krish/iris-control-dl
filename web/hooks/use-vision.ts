@@ -39,7 +39,7 @@ export function useVision(onFrame: (face: Face | null, now: number) => void) {
           if (now - previous >= 40 && element.readyState >= 2 && element.currentTime !== frameTime) {
             previous = now; frameTime = element.currentTime;
             const result = detector.detectForVideo(element, now);
-            callback.current(result.faceLandmarks[0] ? readFace(result.faceLandmarks[0]) : null, now);
+            callback.current(result.faceLandmarks[0] ? readFace(result.faceLandmarks[0],element.videoHeight/element.videoWidth) : null, now);
           }
           if (window.irisDesktop) resources.current.timer = setTimeout(() => tick(performance.now()), 40);
           else resources.current.raf = requestAnimationFrame(tick);

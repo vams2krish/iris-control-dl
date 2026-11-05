@@ -39,3 +39,13 @@ Real keyboard typing, blink precision, sustained tracking, thermal behavior and 
 - The user confirmed Windows cursor movement in the first trial but reported that gaze did not lock easily. This is not recorded as a successful Windows click test. Version 0.2.1 adds fixation pinning, brief-outlier tolerance, movement hysteresis and a configurable lock radius; regression tests pass, while the webcam usability retest remains pending. Primary-monitor input only; secure/elevated Windows surfaces are excluded.
 
 The host system drive was full at first build, causing Gradle cache writes and JVM/Node allocation failures. Project-local caches and temporary paths on the workspace drive, sequential builds, a one-worker Gradle configuration, Serial GC, and a 128 MiB test JVM allowed Android validation to finish. No unrelated user files were removed.
+
+## Windows/web 0.3 response to the second failed usability test
+
+The user reported that 0.2.1 was still too jittery/inaccurate. The earlier fixation-lock change is therefore not recorded as a successful usability fix.
+
+Code inspection found two calibration/feature problems: vertical iris coordinates were normalized by changing eyelid aperture, and ridge regression operated on unstandardized small-amplitude iris signals. The Windows/web implementation now measures both iris axes in an eye-width basis, corrects video aspect ratio, uses per-target medians and standardization, invalidates old feature profiles, and tests five separate validation targets before enabling eye input. The native process independently checks the quality summary and rejects unacceptable calibration.
+
+An explicitly separate head-pointer mode uses nose position relative to a captured neutral pose to steer by velocity. Returning to neutral stops movement; head input has no gaze-position pinning and dwell does not accumulate during steering. This is not described as improved eye tracking.
+
+Verification: 11 web tests and 18 desktop tests pass locally, including eye-coordinate invariance, eyelid-aperture independence, small-signal calibration, rejection of biased validation data, head neutral/steering/loss behavior, native calibration gates and rejection of old-source frames. Web production build passes. Human usability of 0.3 remains pending; Android 0.1.1 and its prior Pixel smoke test are unchanged.

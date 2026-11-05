@@ -1,5 +1,5 @@
 {
-  "name": "iris-control-desktop", "version": "0.2.1", "private": true,
+  "name": "iris-control-desktop", "version": "0.3.0", "private": true,
   "description": "Local Windows gaze controller with the Iris React interface",
   "main": "main.cjs",
   "scripts": {
